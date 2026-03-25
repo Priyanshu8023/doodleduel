@@ -20,6 +20,9 @@ export const roomHandler = (io: Server, socket: Socket) => {
     })
 
     socket.on("chat_message", ({ roomId, message }) => {
+        const room = gameStore.getRoom(roomId);
+        const player = room?.players.find(p => p.id === socket.id);
+        const userName = player?.name;
 
         const isCorrectGuess = gameStore.checkGuess(roomId, socket.id, message);
 
@@ -28,6 +31,7 @@ export const roomHandler = (io: Server, socket: Socket) => {
             io.to(roomId).emit("system_message", {
                 type: "CORRECT_GUESS",
                 userId: socket.id,
+                userName: userName,
             });
 
             io.to(roomId).emit("room_state_updated", gameStore.getRoom(roomId));
@@ -35,6 +39,7 @@ export const roomHandler = (io: Server, socket: Socket) => {
 
             io.to(roomId).emit("receive_message", {
                 userId: socket.id,
+                userName: userName,
                 message,
             })
         }

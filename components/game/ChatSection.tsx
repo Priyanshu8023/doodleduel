@@ -1,12 +1,12 @@
 "use client"
 
-import {useEffect ,useState} from "react"
+import { useEffect, useState } from "react"
 import { socket } from "@/lib/socket"
 
 
 export default function ChatSection({ roomId }: { roomId: string }) {
     const [message, setMessage] = useState("");
-    const [chat, setChat] = useState<{ userId: string, message?: string, type?: string, word?: string }[]>([]);
+    const [chat, setChat] = useState<{ userName?: string, message?: string, type?: string, word?: string }[]>([]);
 
     useEffect(() => {
         const handleMsg = (msg: any) => setChat((prev) => [...prev, msg]);
@@ -24,7 +24,7 @@ export default function ChatSection({ roomId }: { roomId: string }) {
     const sendMessage = (e: React.FormEvent) => {
         e.preventDefault();
         if (!message.trim()) return;
-        
+
         socket.emit("chat_message", {
             roomId,
             message,
@@ -37,16 +37,16 @@ export default function ChatSection({ roomId }: { roomId: string }) {
             <div className="flex-1 p-4 overflow-y-auto space-y-2">
                 {chat.map((c, i) => (
                     <div key={i} className={`p-2 rounded-md max-w-[80%] ${c.type === "CORRECT_GUESS" ? "bg-green-100 text-green-800 self-center w-full text-center font-bold" : c.type === "ROUND_END" ? "bg-red-100 text-red-800 w-full text-center font-bold" : "bg-white border"}`}>
-                        {c.type === "CORRECT_GUESS" ? `${c.userId} guessed the word!` : c.type === "ROUND_END" ? `Round over! The word was: ${c.word}` : (
-                            <p><span className="font-semibold text-xs text-gray-400">{c.userId.slice(0, 4)}: </span>{c.message}</p>
+                        {c.type === "CORRECT_GUESS" ? `${c.userName} guessed the word!` : c.type === "ROUND_END" ? `Round over! The word was: ${c.word}` : (
+                            <p><span className="font-semibold text-xs text-gray-400">{c.userName}: </span>{c.message}</p>
                         )}
                     </div>
                 ))}
             </div>
             <form onSubmit={sendMessage} className="p-3 bg-white border-t flex gap-2">
-                <input 
-                    type="text" 
-                    placeholder="Type your guess..." 
+                <input
+                    type="text"
+                    placeholder="Type your guess..."
                     className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
