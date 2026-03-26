@@ -2,7 +2,6 @@ import express, { Request, Response } from "express";
 import { createServer } from "http";
 import next from "next";
 import { Server } from "socket.io";
-import { Socket } from "socket.io-client";
 import { roomHandler } from "./socket/handlers/roomHandler";
 import { drawingHandler } from "./socket/handlers/drawing";
 

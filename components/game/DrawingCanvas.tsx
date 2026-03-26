@@ -7,6 +7,8 @@ export default function DrawingCanvas({ roomId, isDrawer }: { roomId: string; is
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
     const lastEmitTime = useRef<number>(0);
+    const lastEmittedPoint = useRef<{ x: number, y: number } | null>(null);
+    const lastLocalPoint = useRef<{ x: number, y: number } | null>(null);
 
     const [drawing, setDrawing] = useState(false);
     const [color, setColor] = useState("#000000")
@@ -27,29 +29,50 @@ export default function DrawingCanvas({ roomId, isDrawer }: { roomId: string; is
         ctx.closePath();
     }, []);
 
-    const throttleEmit = (data: any) => {
-        const now = Date.now();
+    const startDrawing = (e: React.MouseEvent) => {
+        if (!isDrawer || !canvasRef.current) return;
+        setDrawing(true);
+        const rect = canvasRef.current.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        lastLocalPoint.current = { x, y };
+        lastEmittedPoint.current = { x, y };
+    };
 
-        if (now - lastEmitTime.current > 16) {
-            socket.emit("draw", data);
-            lastEmitTime.current = now;
-        }
+    const stopDrawing = () => {
+        setDrawing(false);
+        lastLocalPoint.current = null;
+        lastEmittedPoint.current = null;
     };
 
     const draw = (e: React.MouseEvent) => {
-        if (!drawing || !isDrawer || !canvasRef.current) return;
+        if (!drawing || !isDrawer || !canvasRef.current || !lastLocalPoint.current || !lastEmittedPoint.current) return;
 
         const rect = canvasRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
-        const prevX = x - e.movementX;
-        const prevY = y - e.movementY;
+        
+        const prevX = lastLocalPoint.current.x;
+        const prevY = lastLocalPoint.current.y;
 
         drawLine(prevX, prevY, x, y, color, size);
+        lastLocalPoint.current = { x, y };
 
-        throttleEmit({ roomId, x, y, prevX, prevY, color, size });
-
-    }
+        const now = Date.now();
+        if (now - lastEmitTime.current > 16) {
+            socket.emit("draw", { 
+                roomId, 
+                x, 
+                y, 
+                prevX: lastEmittedPoint.current.x, 
+                prevY: lastEmittedPoint.current.y, 
+                color, 
+                size 
+            });
+            lastEmitTime.current = now;
+            lastEmittedPoint.current = { x, y };
+        }
+    };
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -72,10 +95,10 @@ export default function DrawingCanvas({ roomId, isDrawer }: { roomId: string; is
         <canvas
             ref={canvasRef}
             className="border bg-white rounded-lg cursor-crosshair touch-none"
-            onMouseDown={() => isDrawer && setDrawing(true)}
+            onMouseDown={startDrawing}
             onMouseMove={draw}
-            onMouseUp={() => setDrawing(false)}
-            onMouseLeave={() => setDrawing(false)}
+            onMouseUp={stopDrawing}
+            onMouseLeave={stopDrawing}
         />
     );
 }

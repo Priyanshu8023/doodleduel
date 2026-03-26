@@ -5,7 +5,6 @@ import { socket } from "@/lib/socket";
 import DrawingCanvas from "@/components/game/DrawingCanvas";
 import ChatSection from "@/components/game/ChatSection";
 
-// We duplicate the RoomState type here locally to avoid importing server-only code to the client
 type RoomState = {
     roomId: string;
     players: { id: string, name: string, score: number, hasGuessed: boolean, isDrawer: boolean }[];
@@ -21,7 +20,7 @@ export default function GameRoom({ params }: { params: Promise<{ roomId: string 
     const { roomId } = use(params);
     const [name, setName] = useState("");
     const [joined, setJoined] = useState(false);
-    
+
     const [roomState, setRoomState] = useState<RoomState | null>(null);
     const [timer, setTimer] = useState(0);
 
@@ -61,10 +60,10 @@ export default function GameRoom({ params }: { params: Promise<{ roomId: string 
             <div className="flex h-screen items-center justify-center bg-gray-100">
                 <form onSubmit={joinRoom} className="p-8 bg-white rounded-xl shadow-lg flex flex-col gap-4 text-center max-w-sm w-full">
                     <h1 className="text-2xl font-black tracking-tight text-gray-900">Join Room: {roomId}</h1>
-                    <input 
+                    <input
                         className="border-2 border-gray-200 px-4 py-3 rounded-lg text-lg focus:outline-none focus:border-blue-500 transition-colors"
-                        type="text" 
-                        placeholder="Enter your name..." 
+                        type="text"
+                        placeholder="Enter your name..."
                         value={name}
                         onChange={e => setName(e.target.value)}
                         autoFocus
@@ -90,7 +89,7 @@ export default function GameRoom({ params }: { params: Promise<{ roomId: string 
                     <h1 className="font-black text-2xl tracking-tighter text-blue-600">skribble.io</h1>
                     <span className="text-xs font-semibold px-2 py-1 bg-gray-100 rounded-md text-gray-500">Room: {roomId}</span>
                 </div>
-                
+
                 {roomState.status === "PLAYING" && (
                     <div className="flex flex-col items-center">
                         <span className="text-sm font-bold text-gray-400 uppercase tracking-widest">Round {roomState.round} of {roomState.maxRounds}</span>
@@ -103,7 +102,7 @@ export default function GameRoom({ params }: { params: Promise<{ roomId: string 
                         )}
                     </div>
                 )}
-                
+
                 <div className="text-2xl font-black tabular-nums min-w-[3ch] text-right text-gray-800">
                     {roomState.status === "PLAYING" ? timer : "∞"}
                 </div>
@@ -131,7 +130,7 @@ export default function GameRoom({ params }: { params: Promise<{ roomId: string 
 
                     {/* Game Controls for Host */}
                     {roomState.status === "LOBBY" && roomState.players.length >= 2 && roomState.players[0].id === socket.id && (
-                        <button 
+                        <button
                             onClick={startGame}
                             className="w-full py-4 bg-green-500 hover:bg-green-600 text-white font-black rounded-lg shadow-md transition-all active:scale-95"
                         >
@@ -148,14 +147,14 @@ export default function GameRoom({ params }: { params: Promise<{ roomId: string 
                 {/* Center: Canvas or Overlay */}
                 <div className="flex-1 flex flex-col relative rounded-lg overflow-hidden shadow-md bg-white border">
                     <DrawingCanvas roomId={roomId} isDrawer={isDrawer} />
-                    
+
                     {/* Overlays for different game states */}
                     {roomState.status === "LOBBY" && (
                         <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
                             <h2 className="text-4xl font-black text-gray-800">Waiting in Lobby...</h2>
                         </div>
                     )}
-                    
+
                     {roomState.status === "ROUND_END" && (
                         <div className="absolute inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center text-white flex-col gap-4">
                             <h2 className="text-5xl font-black text-yellow-400">Round Over!</h2>
