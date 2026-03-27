@@ -7,9 +7,9 @@ import ChatSection from "@/components/game/ChatSection";
 
 type RoomState = {
     roomId: string;
-    players: { id: string, name: string, score: number, hasGuessed: boolean, isDrawer: boolean }[];
+    players: { id: string, name: string, score: number, hasGuessed: boolean }[];
     status: "LOBBY" | "CHOOSING_WORD" | "PLAYING" | "ROUND_END" | "GAME_OVER";
-    drawerIndex: number | null;
+    drawerId: string | null;
     currentWord: string | null;
     timer: number;
     round: number;
@@ -79,7 +79,7 @@ export default function GameRoom({ params }: { params: Promise<{ roomId: string 
     if (!roomState) return <div className="flex h-screen items-center justify-center text-gray-500 font-bold">Connecting...</div>;
 
     const myPlayer = roomState.players.find(p => p.id === socket.id);
-    const isDrawer = myPlayer?.isDrawer ?? false;
+    const isDrawer =  roomState.drawerId === socket.id;
 
     return (
         <div className="flex flex-col h-screen bg-gray-100 font-sans">
@@ -119,7 +119,7 @@ export default function GameRoom({ params }: { params: Promise<{ roomId: string 
                                 <li key={p.id} className={`flex items-center justify-between p-2 rounded-md ${p.id === socket.id ? "bg-blue-50 border-blue-100 border" : ""} ${p.hasGuessed ? "bg-green-50" : ""}`}>
                                     <div className="flex flex-col">
                                         <span className={`font-semibold ${p.id === socket.id ? 'text-blue-700' : 'text-gray-800'}`}>
-                                            {p.name} {p.isDrawer && '✏️'} {p.hasGuessed && '✔️'}
+                                            {p.name} {roomState.drawerId === p.id && '✏️'} {p.hasGuessed && '✔️'}
                                         </span>
                                         <span className="text-xs text-gray-500">Points: {p.score}</span>
                                     </div>

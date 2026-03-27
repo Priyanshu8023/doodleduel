@@ -12,7 +12,7 @@ export type RoomState = {
     roomId: string;
     players: Player[];
     status: GameStatus;
-    drawerIndex: number | null;
+    drawerId: string | null;
     currentWord: string | null;
     timer: number;
     round: number;
@@ -32,7 +32,7 @@ export class GameStore {
                 status: "LOBBY",
                 round: 1,
                 maxRounds: 3,
-                drawerIndex: null,
+                drawerId: null,
                 currentWord: null,
                 timer: 0,
                 timerInterval: null,
@@ -47,15 +47,23 @@ export class GameStore {
     }
 
     removePlayer(roomId: string, socketId: string) {
-        if (this.rooms[roomId]) {
-            this.rooms[roomId].players = this.rooms[roomId].players.filter(p => p.id !== socketId);
+        const room = this.rooms[roomId];
+        if(!room) return ;
 
-            if (this.rooms[roomId].players.length === 0) {
-                if (this.rooms[roomId].timerInterval) clearInterval(this.rooms[roomId].timerInterval);
-                if (this.rooms[roomId].timeoutId) clearTimeout(this.rooms[roomId].timeoutId);
-                delete this.rooms[roomId];
-            }
+        const wasDrawer = room.drawerId === socketId;
+
+        room.players  =room.players.filter(p=> p.id !== socketId);
+
+        if(wasDrawer){
+            room.drawerId = this.getNextDrawer(room.players,null);
         }
+
+        if(room.players.length === 0){
+            if(room.timerInterval) clearInterval(room.timerInterval)
+            if (room.timeoutId) clearTimeout(room.timeoutId);
+            delete this.rooms[roomId];
+        }
+         
     }
 
     removePlayerFromAllRooms(socketId: string): string | null {
@@ -95,7 +103,7 @@ export class GameStore {
 
         room.status = "CHOOSING_WORD";
         room.round = 1;
-        room.drawerIndex = 0;
+        room.drawerId = room.players[0].id;
 
         room.players.forEach(p => p.score = 0);
 
@@ -108,11 +116,8 @@ export class GameStore {
 
         room.players.forEach(p => {
             p.hasGuessed = false;
-            p.isDrawer = false;
+             
         });
-
-        const drawer = room.players[room.drawerIndex as number];
-        if (drawer) drawer.isDrawer = true;
 
         const WORDS = ["apple", "dog", "house", "car", "javascript", "react", "guitar", "sunflower"];
         room.currentWord = WORDS[Math.floor(Math.random() * WORDS.length)];
@@ -143,18 +148,18 @@ export class GameStore {
 
         room.status = "ROUND_END";
         io.to(roomId).emit("room_updated", room);
-        // Let players see the result for 5 seconds before next round
+         
         io.to(roomId).emit("system_message", { type: "ROUND_END", word: room.currentWord });
 
         room.timeoutId = setTimeout(() => {
-            // Move to next player
-            room.drawerIndex = (room.drawerIndex as number) + 1;
+            const prevDrawerId = room.drawerId;
 
-            // If we've gone through all players, the round is over
-            if (room.drawerIndex >= room.players.length) {
-                room.drawerIndex = 0;
-                room.round += 1;
-            }
+            // Move to next player
+            room.drawerId= this.getNextDrawer(room.players,room.drawerId);
+
+             if(room.drawerId === room.players[0].id){
+                room.round+=1;
+             }
 
             // Check if game is completely over
             if (room.round > room.maxRounds) {
@@ -164,6 +169,20 @@ export class GameStore {
                 this.startRound(roomId, io);
             }
         }, 5000);
+    }
+
+    getNextDrawer(players:Player[],currentDrawerId: string | null){
+        if(players.length == 0) return null;
+
+        if(!currentDrawerId) return players[0].id;
+
+        const currentIndex = players.findIndex(p=>p.id===currentDrawerId);
+
+        if(currentIndex === -1 )  return players[0].id;
+
+        const nextIndex = (currentIndex +1)%players.length;
+
+        return players[nextIndex].id;
     }
 }
 
