@@ -58,9 +58,24 @@ export class GameStore {
             room.drawerId = this.getNextDrawer(room.players,null);
         }
 
+        if(room.players.length < 2){
+            if(room.timerInterval){
+                clearInterval(room.timerInterval);
+                room.timerInterval = null;
+            }
+
+            if(room.timeoutId){
+                clearTimeout(room.timeoutId);
+                room.timeoutId = null;
+            }
+
+            room.status = "LOBBY";
+            room.drawerId=null;
+            room.currentWord = null;
+
+        }
+
         if(room.players.length === 0){
-            if(room.timerInterval) clearInterval(room.timerInterval)
-            if (room.timeoutId) clearTimeout(room.timeoutId);
             delete this.rooms[roomId];
         }
          
@@ -119,6 +134,11 @@ export class GameStore {
              
         });
 
+        if(room.players.length <2 ){
+            room.status = "LOBBY
+            return;
+        }
+
         const WORDS = ["apple", "dog", "house", "car", "javascript", "react", "guitar", "sunflower"];
         room.currentWord = WORDS[Math.floor(Math.random() * WORDS.length)];
 
@@ -152,10 +172,19 @@ export class GameStore {
         io.to(roomId).emit("system_message", { type: "ROUND_END", word: room.currentWord });
 
         room.timeoutId = setTimeout(() => {
+            const room = this.rooms[roomId];
+
+            if(!room) return ;
+            if(room.players.length < 2){
+                room.status = "LOBBY"
+                room.drawerId = null;
+                io.to(roomId).emit("room_updated",room);
+                return ;
+            }
             const prevDrawerId = room.drawerId;
 
             // Move to next player
-            room.drawerId= this.getNextDrawer(room.players,room.drawerId);
+            room.drawerId= this.getNextDrawer(room.players,prevDrawerId);
 
              if(room.drawerId === room.players[0].id){
                 room.round+=1;
