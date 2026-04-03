@@ -8,11 +8,10 @@ export const roomHandler = (io: Server, socket: Socket) => {
 
         await gameStore.addPlayer(roomId, {
             id: playerId || socket.id,
-            socketId: socket.id,
             name: name,
             score: 0,
             hasGuessed: false,
-        });
+        }, socket.id);
 
         const updatedRoom = await gameStore.getRoom(roomId);
         io.to(roomId).emit("room_updated", updatedRoom);
@@ -20,11 +19,13 @@ export const roomHandler = (io: Server, socket: Socket) => {
     })
 
     socket.on("chat_message", async ({ roomId, message }: { roomId: string, message: string }) => {
-        const room = await gameStore.getRoom(roomId);
-        const player = room?.players.find(p => p.socketId === socket.id);
-        const userName = player?.name;
+        const playerId = await gameStore.getPlayerIdBySocket(socket.id);
+        if (!playerId) return;
 
+        const player = await gameStore.getPlayer(playerId);
         if (!player) return;
+
+        const userName = player.name;
 
         const isCorrectGuess = await gameStore.checkGuess(roomId, player.id, message, io);
 
@@ -50,13 +51,22 @@ export const roomHandler = (io: Server, socket: Socket) => {
     });
 
     socket.on("disconnect", async () => {
-        const roomId = await gameStore.removePlayerFromAllRooms(socket.id);
+        const result = await gameStore.markDisconnected(socket.id);
+        if (!result) return;
 
-        if (roomId) {
-            const updatedRoom = await gameStore.getRoom(roomId);
-            if (updatedRoom) {
-                io.to(roomId).emit("room_updated", updatedRoom);
+        const { roomId, playerId } = result;
+
+        setTimeout(async () => {
+            const reconnected = await gameStore.isPlayerReconnected(playerId);
+
+            if (!reconnected) {
+                await gameStore.removePlayerFromRoom(roomId, playerId);
+
+                const updatedRoom = await gameStore.getRoom(roomId);
+                if (updatedRoom) {
+                    io.to(roomId).emit("room_updated", updatedRoom);
+                }
             }
-        }
-    })
+        }, 30000);
+    });
 }

@@ -1,0 +1,5 @@
+server/socket/handlers/drawing.ts(10,50): error TS2339: Property 'socketId' does not exist on type '{ id: string; name: string; score: number; hasGuessed: boolean; }'.
+server/socket/handlers/drawing.ts(11,36): error TS2339: Property 'drawerId' does not exist on type '{ round: number; maxRounds: number; timer: number; players: { id: string; name: string; score: number; hasGuessed: boolean; }[]; roomId: string; }'.
+server/store/gameState.ts(226,54): error TS2339: Property 'status' does not exist on type '{ round: number; maxRounds: number; timer: number; players: { id: string; name: string; score: number; hasGuessed: boolean; }[]; roomId: string; }'.
+server/store/gameState.ts(305,24): error TS2339: Property 'currentWord' does not exist on type '{ round: number; maxRounds: number; timer: number; players: { id: string; name: string; score: number; hasGuessed: boolean; }[]; roomId: string; }'.
+server/store/gameState.ts(324,83): error TS2339: Property 'drawerId' does not exist on type '{ round: number; maxRounds: number; timer: number; players: { id: string; name: string; score: number; hasGuessed: boolean; }[]; roomId: string; }'.
