@@ -17,6 +17,10 @@ export const roomHandler = (io: Server, socket: Socket) => {
         const updatedRoom = await gameStore.getRoom(roomId);
         io.to(roomId).emit("room_updated", updatedRoom);
         console.log(`User ${socket.id} (Player ${playerId}) joined: ${roomId}`);
+
+        socket.to(roomId).emit("player_joined",{
+            newPlayerSocketId: socket.id
+        });
     })
 
     socket.on("chat_message", async ({ roomId, message }: { roomId: string, message: string }) => {
@@ -50,6 +54,10 @@ export const roomHandler = (io: Server, socket: Socket) => {
     socket.on("start_game", async (roomId: string) => {
         await gameStore.startGame(roomId, io);
     });
+
+    socket.on("sync_canvas",({targetSocketId , canvasData}:{targetSocketId: string ,canvasData : string })=>{
+        io.to(targetSocketId).emit("receive_canvas_sync",canvasData)
+    })
 
     socket.on("disconnect", async () => {
         const result = await gameStore.markDisconnected(socket.id);
