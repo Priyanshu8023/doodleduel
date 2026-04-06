@@ -84,14 +84,21 @@ export default function DrawingCanvas({ roomId, isDrawer }: { roomId: string; is
 
         const now = Date.now();
         if (now - lastEmitTime.current > 16) {
+            // Normalize coordinates for responsiveness before emitting
+            const normX = x / canvasRef.current.width;
+            const normY = y / canvasRef.current.height;
+            const normPrevX = lastEmittedPoint.current.x / canvasRef.current.width;
+            const normPrevY = lastEmittedPoint.current.y / canvasRef.current.height;
+            const normSize = size / canvasRef.current.width;
+
             socket.emit("draw", {
                 roomId,
-                x,
-                y,
-                prevX: lastEmittedPoint.current.x,
-                prevY: lastEmittedPoint.current.y,
+                x: normX,
+                y: normY,
+                prevX: normPrevX,
+                prevY: normPrevY,
                 color,
-                size
+                size: normSize
             });
             lastEmitTime.current = now;
             lastEmittedPoint.current = { x, y };
@@ -104,17 +111,29 @@ export default function DrawingCanvas({ roomId, isDrawer }: { roomId: string; is
 
         ctxRef.current = canvas.getContext("2d")
 
-        canvas.width = 800;
-        canvas.height = 500;
+        // Dynamically set internal resolution to container size
+        const parent = canvas.parentElement;
+        if (parent) {
+            canvas.width = parent.clientWidth;
+            canvas.height = parent.clientHeight;
+        } else {
+            canvas.width = 800;
+            canvas.height = 500;
+        }
 
         const ctx = ctxRef.current;
         if (ctx) {
             ctx.fillStyle = "#FFFFFF";
-            ctx.fillRect(0, 0, 800, 500);
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
         const handleRemoteDraw = (data: any) => {
-            if (!isDrawer) drawLine(data.prevX, data.prevY, data.x, data.y, data.color, data.size);
+            if (!isDrawer && canvasRef.current) {
+                const w = canvasRef.current.width;
+                const h = canvasRef.current.height;
+                // De-normalize coordinates on receiving end
+                drawLine(data.prevX * w, data.prevY * h, data.x * w, data.y * h, data.color, data.size * w);
+            }
         }
 
         const handlePlayerJoined = ({ newPlayerSocketId }: { newPlayerSocketId: string }) => {
@@ -143,9 +162,9 @@ export default function DrawingCanvas({ roomId, isDrawer }: { roomId: string; is
         socket.on("receive_canvas_sync", handleReceiveCanvas);
 
         return () => {
-            socket.on("drawing", handleRemoteDraw);
-            socket.on("player_joined", handlePlayerJoined);
-            socket.on("receive_canvas_sync", handleReceiveCanvas);
+            socket.off("drawing", handleRemoteDraw);
+            socket.off("player_joined", handlePlayerJoined);
+            socket.off("receive_canvas_sync", handleReceiveCanvas);
         }
     }, [isDrawer, drawLine]);
 
@@ -156,7 +175,7 @@ export default function DrawingCanvas({ roomId, isDrawer }: { roomId: string; is
                 <canvas
                     ref={canvasRef}
                     className="bg-white cursor-crosshair touch-none shadow-lg rounded-xl border-2 border-gray-300"
-                    style={{ aspectRatio: "8/5", maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
+                    style={{ width: "100%", height: "100%", objectFit: "contain" }}
                     onMouseDown={startDrawing}
                     onMouseMove={draw}
                     onMouseUp={stopDrawing}
@@ -183,8 +202,8 @@ export default function DrawingCanvas({ roomId, isDrawer }: { roomId: string; is
                                         key={s.label}
                                         onClick={() => setSize(s.value)}
                                         className={`w-10 h-10 flex items-center justify-center rounded-md transition-all ${isSelected
-                                                ? 'bg-blue-500 text-white shadow-md scale-105'
-                                                : 'bg-white hover:bg-gray-100 text-gray-700 border border-gray-200'
+                                            ? 'bg-blue-500 text-white shadow-md scale-105'
+                                            : 'bg-white hover:bg-gray-100 text-gray-700 border border-gray-200'
                                             }`}
                                         title={`Brush Size: ${s.value}px`}
                                     >
@@ -203,8 +222,8 @@ export default function DrawingCanvas({ roomId, isDrawer }: { roomId: string; is
                         <button
                             onClick={() => setColor("#FFFFFF")}
                             className={`w-10 h-10 flex items-center justify-center rounded-md transition-all ${color === "#FFFFFF"
-                                    ? 'bg-blue-500 text-white shadow-md scale-105'
-                                    : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-100'
+                                ? 'bg-blue-500 text-white shadow-md scale-105'
+                                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-100'
                                 }`}
                             title="Eraser"
                         >
