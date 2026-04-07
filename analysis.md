@@ -11,7 +11,7 @@ The backend logic primarily resides in `gameState.ts` and socket handlers. While
   - **Fix:** Use `drawerId` (a string matching the socket id) instead of `drawerIndex`. Also implemented **Player Reconnect** to resume session on refresh.
 - [ ] **Dangling Timers:** `endRound` sets a 5-second `setTimeout` to start the next round. If the last player leaves during these 5 seconds, the server will try to access an empty room or start a round with no players.
   - **Fix:** Ensure timeouts and intervals are strictly cleared if the room becomes empty, and check if `room.players.length >= 2` before starting the next round inside the timeout.
-- [ ] **Data Validation & Sanitization:** There's no limit to the length of chat messages or user names. Malicious users can send massive strings that consume server memory.
+- [x] **Data Validation & Sanitization:** There's no limit to the length of chat messages or user names. Malicious users can send massive strings that consume server memory.
   - **Fix:** Add length validation on `chat_message` and `join_room` events.
 - [ ] **Centralized Word List:** The word list is hardcoded in `gameState.ts` (`const WORDS = [...]`). 
   - **Fix:** Move this to a separate file (e.g., `lib/words.json` or a database table via Prisma) to easily expand the game's dictionary without changing logic.

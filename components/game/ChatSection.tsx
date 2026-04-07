@@ -2,9 +2,6 @@
 
 import { useEffect, useState } from "react"
 import { socket } from "@/lib/socket"
-import { Bounce, ToastContainer, toast } from 'react-toastify';
-
-
 export default function ChatSection({ roomId }: { roomId: string }) {
     const [message, setMessage] = useState("");
     const [chat, setChat] = useState<{ userName?: string, message?: string, type?: string, word?: string }[]>([]);
@@ -24,24 +21,17 @@ export default function ChatSection({ roomId }: { roomId: string }) {
 
     const sendMessage = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!message.trim()) return;
-        if (message.length > 20) {
-            toast.error('Length of Word is Under 20', {
-                position: "top-center",
-                autoClose: 5000,
-                hideProgressBar: false,
-                closeOnClick: false,
-                pauseOnHover: true,
-                draggable: true,
-                progress: undefined,
-                theme: "light",
-                transition: Bounce,
-            });
+        const trimmedMessage = message.trim();
+        if (!trimmedMessage) return;
+        
+        if (trimmedMessage.length > 50) {
+            setChat((prev) => [...prev, { type: "WARNING", message: "Message is too long (max 50 characters)" }]);
             return;
         }
+
         socket.emit("chat_message", {
             roomId,
-            message,
+            message: trimmedMessage,
         });
         setMessage("");
     }
@@ -50,8 +40,15 @@ export default function ChatSection({ roomId }: { roomId: string }) {
         <div className="flex flex-col h-full border rounded-lg bg-gray-50 overflow-hidden shadow-sm">
             <div className="flex-1 p-4 overflow-y-auto space-y-2">
                 {chat.map((c, i) => (
-                    <div key={i} className={`p-2 rounded-md max-w-[80%] ${c.type === "CORRECT_GUESS" ? "bg-green-100 text-green-800 self-center w-full text-center font-bold" : c.type === "ROUND_END" ? "bg-red-100 text-red-800 w-full text-center font-bold" : "bg-white border"}`}>
-                        {c.type === "CORRECT_GUESS" ? `${c.userName} guessed the word!` : c.type === "ROUND_END" ? `Round over! The word was: ${c.word}` : (
+                    <div key={i} className={`p-2 rounded-md max-w-[80%] ${
+                        c.type === "CORRECT_GUESS" ? "bg-green-100 text-green-800 self-center w-full text-center font-bold" : 
+                        c.type === "ROUND_END" ? "bg-red-100 text-red-800 w-full text-center font-bold" : 
+                        c.type === "WARNING" ? "bg-yellow-100 text-yellow-800 self-center w-full text-center font-semibold text-sm" : 
+                        "bg-white border"
+                    }`}>
+                        {c.type === "CORRECT_GUESS" ? `${c.userName} guessed the word!` : 
+                         c.type === "ROUND_END" ? `Round over! The word was: ${c.word}` : 
+                         c.type === "WARNING" ? c.message : (
                             <p><span className="font-semibold text-xs text-gray-400">{c.userName}: </span>{c.message}</p>
                         )}
                     </div>
