@@ -13,6 +13,7 @@ export default function ChatSection({ roomId }: { roomId: string }) {
         socket.on("receive_message", handleMsg);
         socket.on("system_message", handleSys);
 
+
         return () => {
             socket.off("receive_message", handleMsg);
             socket.off("system_message", handleSys);

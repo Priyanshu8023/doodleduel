@@ -6,6 +6,7 @@ import DrawingCanvas from "@/components/game/DrawingCanvas";
 import ChatSection from "@/components/game/ChatSection";
 import { Bounce, ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { playRoundStartSound, playTickSound, playRoundEndSound, playCorrectGuessSound } from "@/lib/audio";
 
 type RoomState = {
     roomId: string;
@@ -39,24 +40,41 @@ export default function GameRoom({ params }: { params: Promise<{ roomId: string 
             setRoomState(state);
         };
 
+        const handleSystemMessage = (sys: any) => {
+            if (sys.type === "CORRECT_GUESS") {
+                playCorrectGuessSound();
+            }
+        };
+
         socket.on("room_updated", handleRoomUpdate);
         socket.on("room_state_updated", handleRoomUpdate);
+        socket.on("system_message", handleSystemMessage);
 
         return () => {
             socket.off("room_updated", handleRoomUpdate);
             socket.off("room_state_updated", handleRoomUpdate);
+            socket.off("system_message", handleSystemMessage);
         }
     }, []);
 
     useEffect(() => {
         if (roomState?.status === "PLAYING" && roomState.roundEndTime) {
+            playRoundStartSound();
             const updateTimer = () => {
                 const timeLeft = Math.max(0, Math.ceil((roomState.roundEndTime - Date.now()) / 1000));
                 setTimer(timeLeft);
+
+                if (timeLeft <= 5 && timeLeft > 0) {
+                    playTickSound();
+                }
             };
-            updateTimer(); // Initial call
+
+            updateTimer();
             const interval = setInterval(updateTimer, 1000);
             return () => clearInterval(interval);
+        } else if (roomState?.status === "ROUND_END") {
+            playRoundEndSound();
+            setTimer(0);
         } else {
             setTimer(0);
         }

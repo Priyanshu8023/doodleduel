@@ -9,7 +9,7 @@ The backend logic primarily resides in `gameState.ts` and socket handlers. While
 ### **Areas for Improvement:**
 - [x] **Robust Disconnect Handling:** Currently, in `gameState.ts`, `drawerIndex` is an integer index. If a player disconnects, it shifts the indexes of players, potentially causing the wrong person to become the drawer or skipping someone's turn.
   - **Fix:** Use `drawerId` (a string matching the socket id) instead of `drawerIndex`. Also implemented **Player Reconnect** to resume session on refresh.
-- [ ] **Dangling Timers:** `endRound` sets a 5-second `setTimeout` to start the next round. If the last player leaves during these 5 seconds, the server will try to access an empty room or start a round with no players.
+- [x] **Dangling Timers:** `endRound` sets a 5-second `setTimeout` to start the next round. If the last player leaves during these 5 seconds, the server will try to access an empty room or start a round with no players.
   - **Fix:** Ensure timeouts and intervals are strictly cleared if the room becomes empty, and check if `room.players.length >= 2` before starting the next round inside the timeout.
 - [x] **Data Validation & Sanitization:** There's no limit to the length of chat messages or user names. Malicious users can send massive strings that consume server memory.
   - **Fix:** Add length validation on `chat_message` and `join_room` events.
