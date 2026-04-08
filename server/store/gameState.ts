@@ -1,4 +1,5 @@
 import { redis } from "@/lib/redisClient";
+import { prisma } from "@/lib/prisma";
 
 export type Player = {
     id: string;
@@ -24,6 +25,9 @@ export type RoomState = {
     round: number;
     maxRounds: number;
 };
+
+const FALLBACK_WORDS = ["apple", "dog", "house", "car", "javascript", "react"];
+const getRandomElement = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
 
 export class GameStore {
     private io: any = null;
@@ -134,6 +138,7 @@ export class GameStore {
         pipeline.del(`room:${roomId}:players`);
         pipeline.del(`room:${roomId}:players:set`);
         pipeline.del(`room:${roomId}:leaderboard`);
+        pipeline.del(`room:${roomId}:words`);
         pipeline.zrem("active_rounds", roomId);
         pipeline.zrem("transition_rounds", roomId);
         pipeline.zrem("room_activity", roomId);
@@ -216,6 +221,7 @@ export class GameStore {
         if (remainingPlayers === 0) {
             await this.deleteRoom(roomId);
             await redis.del(`room:${roomId}:leaderboard`);
+            await redis.del(`room:${roomId}:words`);
             await redis.zrem("active_rounds", roomId);
             await redis.zrem("transition_rounds", roomId);
             await redis.zrem("room_activity", roomId);
@@ -329,8 +335,29 @@ export class GameStore {
         const playerIds = await redis.lrange(`room:${roomId}:players`, 0, -1);
         if (playerIds.length < 2) return;
 
-        const WORDS = ["apple", "dog", "house", "car", "javascript", "react"];
-        const currentWord = WORDS[Math.floor(Math.random() * WORDS.length)];
+        let currentWord = "";
+        try {
+            const redisWord = await redis.spop(`room:${roomId}:words`);
+
+            if (redisWord) {
+                currentWord = redisWord as string;
+            } else {
+                const randomWords = await prisma.$queryRawUnsafe<{ word: string }[]>('SELECT word FROM "Word" ORDER BY RANDOM() LIMIT 150');
+                const words = randomWords.map((w) => w.word);
+
+                if (words.length > 0) {
+                    await redis.sadd(`room:${roomId}:words`, ...words);
+                    await redis.expire(`room:${roomId}:words`, 1800);
+                    const poppedWord = await redis.spop(`room:${roomId}:words`);
+                    currentWord = poppedWord ? (poppedWord as string) : getRandomElement(words);
+                } else {
+                    currentWord = getRandomElement(FALLBACK_WORDS);
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching words:", error);
+            currentWord = getRandomElement(FALLBACK_WORDS);
+        }
 
         const pipeline = redis.multi();
         playerIds.forEach(id => {
