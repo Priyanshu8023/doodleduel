@@ -1,0 +1,16 @@
+.env
+.node_modules
+.next
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.vercel
+*.tsbuildinfo
+next-env.d.ts
+/generated/prisma
+*.md
+!AGENTS.md
+!CLAUDE.md
+!README.md
+!analysis.md

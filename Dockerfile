@@ -1,4 +1,4 @@
-FROM node:20-alphine AS base
+FROM node:20-alpine AS base
 
 FROM base AS deps
 RUN apk add --no-cache libc6-compat
@@ -26,13 +26,13 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/server ./server
 COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
-COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/package.json /app/package-lock.json* ./
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/generated ./generated
 
 RUN npm ci --omit=dev && npm install tsx
 
 COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 USER nextjs
 EXPOSE 3000
