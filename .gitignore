@@ -42,8 +42,3 @@ next-env.d.ts
 
 /generated/prisma
 
-*.md
-!AGENTS.md
-!CLAUDE.md
-!README.md
-!analysis.md
