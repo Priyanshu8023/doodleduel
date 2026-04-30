@@ -1,7 +1,7 @@
 FROM node:20-alpine AS base
 
-# 1. Install dependencies only when needed
-FROM base AS deps
+# 1. Build Stage
+FROM base AS builder
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
@@ -9,11 +9,7 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci
 
-
-# 2. Rebuild the source code only when needed
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+# Copy the rest of the source code
 COPY . .
 
 # Generate Prisma Client
